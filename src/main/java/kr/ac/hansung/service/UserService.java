@@ -6,6 +6,7 @@ import kr.ac.hansung.entity.User;
 import kr.ac.hansung.repository.RoleRepository;
 import kr.ac.hansung.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ public class UserService {
         }
 
         Role userRole = roleRepository.findByName("ROLE_USER")
-            .orElseGet(() -> roleRepository.save(new Role("ROLE_USER")));
+                .orElseGet(() -> roleRepository.save(new Role("ROLE_USER")));
 
         User user = new User();
         user.setEmail(dto.getEmail());
@@ -37,5 +38,22 @@ public class UserService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    // 💡 비밀번호 변경 핵심 비즈니스 로직 추가 완료
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        // 1. 로그인한 유저 이메일로 DB에서 유저 객체 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(email));
+
+        // 2. BCrypt 암호화 기법을 사용하여 평문(인풋값) vs 해시(DB값) 비교 검증
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다");
+        }
+
+        // 3. 새 비밀번호도 안전하게 인코딩(해싱) 후 객체에 세팅하여 DB 저장
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }
