@@ -9,7 +9,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated; // 💡 변경된 임포트
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/products")
@@ -18,7 +21,7 @@ public class ProductController {
 
     private final ProductService productService;
 
-    // 💡 [4.2 필수] 명세서 스펙에 맞춘 검색 및 페이징 분기 컨트롤러
+    // 💡명세서 스펙에 맞춘 검색 및 페이징 분기 컨트롤러
     @GetMapping
     public String list(
             @RequestParam(required = false) String keyword,
@@ -68,6 +71,42 @@ public class ProductController {
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         productService.deleteById(id);
+        return "redirect:/products";
+    }
+
+    // 💡 상품 수정 폼 표시 (기존 데이터 pre-fill)
+    @GetMapping("/{id}/edit")
+    public String editProductForm(@PathVariable Long id, Model model) {
+        Product product = productService.findById(id);
+
+        // 기존 데이터를 DTO에 담아 폼에 pre-fill
+        ProductDto dto = new ProductDto();
+        dto.setName(product.getName());
+        dto.setPrice(product.getPrice());
+        dto.setStock(product.getStock());
+        dto.setDescription(product.getDescription());
+
+        model.addAttribute("productDto", dto);
+        model.addAttribute("productId", id);
+
+        return "products/edit";
+    }
+
+    // 💡 [4.3 필수] 수정 내용 저장 (@Validated 검증, Flash 메시지)
+    @PostMapping("/{id}/edit")
+    public String editProduct(@PathVariable Long id,
+                              @Validated @ModelAttribute ProductDto productDto, // 💡 @Validated로 수정
+                              BindingResult bindingResult,
+                              Model model,
+                              RedirectAttributes ra) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("productId", id);
+            return "products/edit";
+        }
+
+        productService.updateProduct(id, productDto);
+        ra.addFlashAttribute("successMessage", "상품이 수정되었습니다.");
+
         return "redirect:/products";
     }
 }
