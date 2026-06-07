@@ -55,8 +55,8 @@
         <div class="page-header">
             <h4 class="fw-bold mb-0">상품 목록</h4>
             <small class="text-muted" style="font-size: 0.9rem;">
-                총 <span th:text="${productPage.totalElements}">20</span>개 상품
-                (페이지 <span th:text="${productPage.number + 1}">1</span> / <span th:text="${productPage.totalPages}">4</span>)
+                총 <span th:text="${productPage.totalElements}"></span>개 상품
+                (페이지 <span th:text="${productPage.number + 1}"></span> / <span th:text="${productPage.totalPages}"></span>)
             </small>
         </div>
         <a th:href="@{/products/add}" class="btn btn-danger btn-sm px-4 fw-semibold" sec:authorize="hasRole('ADMIN')">+ 상품 등록</a>
@@ -78,10 +78,11 @@
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-0">
-            <div th:if="${#lists.isEmpty(products)}" class="text-center py-5 text-muted">
-                <p class="mb-0">등록된 상품이 없습니다.</p>
+            <div th:if="${productPage.isEmpty()}" class="text-center py-5 text-muted">
+                <p class="mb-0">검색 결과가 없습니다.</p>
             </div>
-            <div th:unless="${#lists.isEmpty(products)}" class="table-responsive">
+
+            <div th:unless="${productPage.isEmpty()}" class="table-responsive">
                 <table class="table table-hover mb-0 align-middle" style="font-size: 0.95rem;">
                     <thead>
                     <tr>
@@ -95,7 +96,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="p : ${products}">
+                    <tr th:each="p : ${productPage.content}">
                         <td class="ps-4 text-muted small" th:text="${p.id}"></td>
                         <td>
                             <a th:href="@{/products/{id}(id=${p.id})}" class="text-decoration-none fw-semibold text-dark" th:text="${p.name}"></a>
@@ -123,22 +124,26 @@
         </div>
     </div>
 
-    <div th:if="${productPage.totalPages > 1}" class="d-flex justify-content-center my-4">
-        <nav>
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item" th:classappend="${productPage.first} ? 'disabled'">
-                    <a class="page-link" th:href="@{/products(page=${productPage.number - 1}, keyword=${keyword})}">이전</a>
-                </li>
-                <li class="page-item" th:each="idx : ${#numbers.sequence(0, productPage.totalPages - 1)}"
-                    th:classappend="${idx == productPage.number} ? 'active'">
-                    <a class="page-link" th:href="@{/products(page=${idx}, keyword=${keyword})}" th:text="${idx + 1}"></a>
-                </li>
-                <li class="page-item" th:classappend="${productPage.last} ? 'disabled'">
-                    <a class="page-link" th:href="@{/products(page=${productPage.number + 1}, keyword=${keyword})}">다음</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+    <nav class="mt-3" th:if="${productPage.totalPages > 0}">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${!productPage.hasPrevious()} ? 'disabled'">
+                <span class="page-link" th:if="${!productPage.hasPrevious()}">이전</span>
+                <a class="page-link" th:unless="${!productPage.hasPrevious()}"
+                   th:href="${keyword != null} ? @{/products(page=${productPage.number - 1}, size=${productPage.size}, keyword=${keyword})} : @{/products(page=${productPage.number - 1}, size=${productPage.size})}">이전</a>
+            </li>
+
+            <li th:each="i : ${#numbers.sequence(0, productPage.totalPages - 1)}"
+                class="page-item" th:classappend="${i == productPage.number} ? 'active'">
+                <a class="page-link" th:href="${keyword != null} ? @{/products(page=${i}, size=${productPage.size}, keyword=${keyword})} : @{/products(page=${i}, size=${productPage.size})}" th:text="${i + 1}"></a>
+            </li>
+
+            <li class="page-item" th:classappend="${!productPage.hasNext()} ? 'disabled'">
+                <span class="page-link" th:if="${!productPage.hasNext()}">Next</span>
+                <a class="page-link" th:unless="${!productPage.hasNext()}"
+                   th:href="${keyword != null} ? @{/products(page=${productPage.number + 1}, size=${productPage.size}, keyword=${keyword})} : @{/products(page=${productPage.number + 1}, size=${productPage.size})}">다음</a>
+            </li>
+        </ul>
+    </nav>
 </div>
 
 <footer class="mt-5 py-3 text-center border-top">
