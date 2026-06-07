@@ -50,4 +50,23 @@ public class ProductService {
         return productRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("상품을 찾을 수 없습니다: " + id));
     }
+
+    // 💡상품 정보 수정 비즈니스 로직 (더티 체킹 자동 UPDATE)
+    @Transactional
+    public Product updateProduct(Long id, ProductDto dto) {
+        // findById: DB에서 엔티티 조회 (없으면 예외)
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다: " + id));
+
+        // 영속 상태(Managed) 엔티티 필드 변경
+        // -> @Transactional 종료 시 더티 체킹(Dirty Checking)으로 자동 UPDATE
+        product.setName(dto.getName());
+        product.setPrice(dto.getPrice());
+        product.setStock(dto.getStock());
+        if (dto.getDescription() != null) {
+            product.setDescription(dto.getDescription());
+        }
+
+        return product; // 더티 체킹으로 자동 저장
+    }
 }
